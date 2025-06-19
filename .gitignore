@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+artifacts/
+cache/
+typechain-types/
+coverage/
+coverage.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Hardhat
+hardhat.config.js.bak
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Yarn
+yarn-error.log
+yarn.lock
+
+# Package manager locks (choose one)
+package-lock.json
+# yarn.lock

@@ -7,85 +7,54 @@ dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
-    compilers: [
-      {
-        version: "0.8.22", // For OpenZeppelin v5 compatibility
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 1,
-          },
-          viaIR: true, // Enable IR optimizer to solve "Stack too deep" errors
-        },
+    version: "0.8.28",
+    settings: {
+      viaIR: true,
+      optimizer: {
+        enabled: true,
+        runs: 200,
       },
-      {
-        version: "0.8.28", // For Lock.sol and other newer contracts
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-          viaIR: true,
-        },
-      },
-    ],
+    },
   },
   networks: {
-    localhost: {
-      url: "http://127.0.0.1:8545",
-    },
+    // Local node for tests / scripts
     hardhat: {
       chainId: 31337,
+      allowUnlimitedContractSize: true, // dev‑only – lets you unit‑test oversize contracts
     },
+
+    // Sepolia test‑net
     sepolia: {
       url: process.env.SEPOLIA_URL || "",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
     },
-    polygon: {
-      url: process.env.POLYGON_URL || "https://polygon-rpc.com",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 137,
-    },
-    polygonMumbai: {
-      url: process.env.POLYGON_MUMBAI_URL || "https://rpc-mumbai.maticvigil.com",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 80001,
-    },
-    arbitrum: {
-      url: process.env.ARBITRUM_URL || "https://arb1.arbitrum.io/rpc",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 42161,
-    },
-  },
-  etherscan: {
-    apiKey: {
-      sepolia: process.env.ETHERSCAN_API_KEY || "",
-      polygon: process.env.POLYGONSCAN_API_KEY || "",
-      polygonMumbai: process.env.POLYGONSCAN_API_KEY || "",
-      arbitrumOne: process.env.ARBISCAN_API_KEY || "",
-    },
-  },
-  gasReporter: {
-    enabled: process.env.REPORT_GAS === "true",
-    currency: "USD",
   },
   namedAccounts: {
+    // index → address mapping for deploy‑scripts
     deployer: {
       default: 0,
+      sepolia: process.env.DEPLOYER_ADDRESS || "",
     },
     hostingTreasury: {
       default: 1,
+      sepolia: process.env.HOSTING_TREASURY || "",
     },
     platformTreasury: {
       default: 2,
+      sepolia: process.env.PLATFORM_TREASURY || "",
     },
     adTreasury: {
       default: 3,
+      sepolia: process.env.AD_TREASURY || "",
     },
     crowdfundingTreasury: {
       default: 4,
+      sepolia: process.env.CROWDFUNDING_TREASURY || "",
     },
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
   },
 };
 

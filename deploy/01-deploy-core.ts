@@ -2,116 +2,110 @@ import { ethers } from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
-
 /**
- * TypeScript deploy script that performs the same orchestration previously
- * handled by the oversized on‑chain `DeploymentHelper`.
+ * Master deploy script – spins up **every upgradeable module currently in the
+ * repo** so the front‑end team can consume a single JSON of proxy addresses.
  *
- * Works with **ethers.js v6** (note the `waitForDeployment()` + `getAddress()`
- * pattern and the lack of `.address` / `.deployed()` helpers from v5).
+ * If you later add more contracts, just extend the `MODULES` array. Each entry
+ * defines:
+ *   ‑ `label`                Human‑readable name + proxy key in /deployments
+ *   ‑ `impl`                 Solidity factory name of the upgradeable impl.
+ *   ‑ `init`                 Initialize selector string.
+ *   ‑ `args(hre, addrs)`     Function returning constructor‑style args. It
+ *                            receives the HardhatRuntimeEnvironment and a
+ *                            map of addresses already deployed during this
+ *                            run (so you can reference AssetRegistry, etc.).
  */
 
-const DAY = 24 * 60 * 60; // in seconds
+const DAY = 24 * 60 * 60;
+
+type Module = {
+  label: string;
+  impl: string;
+  init: string;
+  args: (addrs: Record<string, string>) => unknown[];
+};
+
+const MODULES: Module[] = [
+  {
+    label: "AssetRegistry",
+    impl: "AssetRegistryUpgradeable",
+    init: "initialize",
+    args: (a) => [a.hostingTreasury],
+  },
+  {
+    label: "RevenueDistributor",
+    impl: "RevenueDistributorUpgradeable",
+    init: "initialize",
+    args: (a) => [a.AssetRegistry, a.platformTreasury],
+  },
+  {
+    label: "PerformerAuthentication",
+    impl: "PerformerAuthenticationUpgradeable",
+    init: "initialize",
+    args: () => [],
+  },
+  // ---- Additional modules ----
+  {
+    label: "AdvertisingEngine",
+    impl: "AdvertisingEngineUpgradeable",
+    init: "initialize",
+    args: (a) => [a.AssetRegistry],
+  },
+  {
+    label: "ContentAccess",
+    impl: "ContentAccessUpgradeable",
+    init: "initialize",
+    args: (a) => [a.AssetRegistry, a.PerformerAuthentication],
+  },
+  {
+    label: "DigitalStudioDAO",
+    impl: "DigitalStudioDAOUpgradeable",
+    init: "initialize",
+    args: (a) => [a.AssetRegistry, a.PerformerAuthentication],
+  },
+  // Non‑upgradeable CommunityGovernance (immutable implementation)
+  // Deployed as a plain contract (not proxy)
+];
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   const { deployments, getNamedAccounts } = hre;
   const { save, log } = deployments;
 
-  const {
-    deployer,
-    hostingTreasury,
-    platformTreasury,
-    /* adTreasury, crowdfundingTreasury – not used in constructor args yet */
-  } = await getNamedAccounts();
+  const named = await getNamedAccounts();
+  const addrs: Record<string, string> = {
+    deployer: named.deployer,
+    hostingTreasury: named.hostingTreasury,
+    platformTreasury: named.platformTreasury,
+    adTreasury: named.adTreasury,
+    crowdfundingTreasury: named.crowdfundingTreasury,
+  };
 
   log(`
-▶︎ Deploying Jeskei platform…`);
-  log(`   deployer: ${deployer}`);
+▶︎ Deploying full Jeskei stack…`);
+  log(`   deployer: ${addrs.deployer}`);
 
-  /* ---------------------------------------------------------------------- */
-  /* 0.  Helper to deploy an impl + proxy in one go                          */
-  /* ---------------------------------------------------------------------- */
-
-  const ERC1967ProxyF = await ethers.getContractFactory("ERC1967Proxy");
+  /* -------------------------------------------------------------------- */
+  /* Helper: deploy impl + UUPS proxy                                     */
+  /* -------------------------------------------------------------------- */
 
   async function deployUUPS(
-    name: string,
-    implFactoryName: string,
-    initSelector: string,
-    initArgs: readonly unknown[]
-  ) {
-    const ImplF = await ethers.getContractFactory(implFactoryName);
-    const impl = await ImplF.deploy();
-    await impl.waitForDeployment();
-    const implAddr = await impl.getAddress();
-    log(`   ${name} impl   → ${implAddr}`);
-
-    const initData = impl.interface.encodeFunctionData(initSelector, initArgs);
-    const proxy = await ERC1967ProxyF.deploy(implAddr, initData);
-    await proxy.waitForDeployment();
-    const proxyAddr = await proxy.getAddress();
-    log(`   ${name} proxy  → ${proxyAddr}`);
-
-    await save(name, {
-      abi: ImplF.interface.format("json") as string[],
-      address: proxyAddr,
-    });
-
-    return { implAddr, proxyAddr };
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* 1. JeskeiProxyFactory (UUPS)                                            */
-  /* ---------------------------------------------------------------------- */
-
-  const { proxyAddr: proxyFactoryAddr } = await deployUUPS(
-    "JeskeiProxyFactory",
-    "JeskeiProxyFactory",
-    "initialize",
-    []
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* 2. UpgradeManager (UUPS)                                               */
-  /* ---------------------------------------------------------------------- */
-
-  const { proxyAddr: upgradeManagerAddr } = await deployUUPS(
-    "UpgradeManager",
-    "UpgradeManager",
-    "initialize",
-    [proxyFactoryAddr, DAY]
-  );
-
-  /* ---------------------------------------------------------------------- */
-  /* 3. Deploy core modules via JeskeiProxyFactory                           */
-  /* ---------------------------------------------------------------------- */
-
-    // Connect to proxy with correct ABI (attach implementation interface to proxy address)
-  const JeskeiProxyFactoryF = await ethers.getContractFactory("JeskeiProxyFactory");
-  const proxyFactory = JeskeiProxyFactoryF.attach(proxyFactoryAddr).connect(
-    await ethers.getSigner(deployer)
-  );
-
-    async function deployViaFactory(
     label: string,
     implFactoryName: string,
     initSelector: string,
-    initArgs: readonly unknown[]
+    initArgs: unknown[]
   ) {
     const ImplF = await ethers.getContractFactory(implFactoryName);
     const impl = await ImplF.deploy();
     await impl.waitForDeployment();
     const implAddr = await impl.getAddress();
+    log(`   ${label} impl   → ${implAddr}`);
 
     const initData = impl.interface.encodeFunctionData(initSelector, initArgs);
-
-        // -- ethers v6: obtain return value via .staticCall on the function fragment
-    const deployFn = proxyFactory.getFunction("deployProxy");
-    const proxyAddr: string = await deployFn.staticCall(label, implAddr, initData, "1.0.0");
-
-    const txResponse = await deployFn(label, implAddr, initData, "1.0.0");
-    await txResponse.wait();
-
+    const ProxyF = await ethers.getContractFactory("ERC1967Proxy");
+    const proxy = await ProxyF.deploy(implAddr, initData);
+    await proxy.waitForDeployment();
+    const proxyAddr = await proxy.getAddress();
     log(`   ${label} proxy  → ${proxyAddr}`);
 
     await save(label, {
@@ -119,42 +113,71 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
       address: proxyAddr,
     });
 
-    return proxyAddr;
+    addrs[label] = proxyAddr; // expose for later module args
   }
 
-  // AssetRegistryUpgradeable
-  const assetRegistryAddr = await deployViaFactory(
-    "AssetRegistry",
-    "AssetRegistryUpgradeable",
-    "initialize",
-    [hostingTreasury]
-  );
+  /* -------------------------------------------------------------------- */
+  /* 1. Infrastructure: ProxyFactory + UpgradeManager                     */
+  /* -------------------------------------------------------------------- */
 
-  // RevenueDistributorUpgradeable
-  await deployViaFactory(
-    "RevenueDistributor",
-    "RevenueDistributorUpgradeable",
-    "initialize",
-    [assetRegistryAddr, platformTreasury]
-  );
+  await deployUUPS("JeskeiProxyFactory", "JeskeiProxyFactory", "initialize", []);
+  await deployUUPS("UpgradeManager", "UpgradeManager", "initialize", [addrs.JeskeiProxyFactory, DAY]);
 
-  // PerformerAuthenticationUpgradeable
-  await deployViaFactory(
-    "PerformerAuthentication",
-    "PerformerAuthenticationUpgradeable",
-    "initialize",
-    []
-  );
+  /* Attach factory proxy with correct ABI */
+  const ProxyFactoryABI = (await ethers.getContractFactory("JeskeiProxyFactory")).interface;
+  const proxyFactory = new ethers.Contract(addrs.JeskeiProxyFactory, ProxyFactoryABI, await ethers.getSigner(addrs.deployer));
 
-  /* ---------------------------------------------------------------------- */
-  /* 4. Authorise UpgradeManager as upgrader                                */
-  /* ---------------------------------------------------------------------- */
+  /* -------------------------------------------------------------------- */
+  /* 2. Deploy every upgradeable module via ProxyFactory                   */
+  /* -------------------------------------------------------------------- */
 
-  await (await proxyFactory.authorizeUpgrader(upgradeManagerAddr)).wait();
+  for (const mod of MODULES) {
+    const ImplF = await ethers.getContractFactory(mod.impl);
+    const impl = await ImplF.deploy();
+    await impl.waitForDeployment();
+    const implAddr = await impl.getAddress();
+
+    const initArgs = mod.args(addrs);
+    const initData = ImplF.interface.encodeFunctionData(mod.init, initArgs);
+
+    const deployFn = proxyFactory.getFunction("deployProxy");
+    const proxyAddr: string = await deployFn.staticCall(mod.label, implAddr, initData, "1.0.0");
+    await (await deployFn(mod.label, implAddr, initData, "1.0.0")).wait();
+
+    log(`   ${mod.label} proxy  → ${proxyAddr}`);
+    await save(mod.label, {
+      abi: ImplF.interface.format("json") as string[],
+      address: proxyAddr,
+    });
+
+    addrs[mod.label] = proxyAddr;
+  }
+
+  /* -------------------------------------------------------------------- */
+  /* 3. Non‑upgradeable CommunityGovernance (optional)                     */
+  /* -------------------------------------------------------------------- */
+
+    const GovF = await ethers.getContractFactory("CommunityGovernance");
+  // constructor(address _assetRegistry, address _revenueDistributor)
+  const governance = await GovF.deploy(addrs.AssetRegistry, addrs.RevenueDistributor);
+  await governance.waitForDeployment();
+  const govAddr = await governance.getAddress();
+  log(`   CommunityGovernance impl → ${govAddr}`);
+  await save("CommunityGovernance", {
+    abi: GovF.interface.format("json") as string[],
+    address: govAddr,
+  });
+
+  /* -------------------------------------------------------------------- */
+  /* 4. Set UpgradeManager as global upgrader                              */
+  /* -------------------------------------------------------------------- */
+
+  const upgradeMgr = addrs.UpgradeManager;
+  await (await proxyFactory.authorizeUpgrader(upgradeMgr)).wait();
   log("   UpgradeManager authorised as upgrader ✅");
 
-  log("Jeskei platform deployed ✔︎");
+  log("Jeskei full stack deployed ✔︎");
 };
 
 export default func;
-func.tags = ["Core", "All"];
+func.tags = ["FullStack"];

@@ -1,5 +1,5 @@
 {
-  "address": "0x3636ad3554C0abb474AD76E59a50aaeFb53c207A",
+  "address": "0x89d3Bdfc7F9b3C6F07daa20366F6DC48a65daE07",
   "abi": [
     "constructor()",
     "error AddressEmptyCode(address)",
@@ -38,5 +38,5 @@
     "function upgradeProxy(string,address,string)",
     "function upgradeToAndCall(address,bytes) payable"
   ],
-  "numDeployments": 3
+  "numDeployments": 4
 }

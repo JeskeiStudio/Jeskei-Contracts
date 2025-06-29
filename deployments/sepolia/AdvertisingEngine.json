@@ -1,5 +1,5 @@
 {
-  "address": "0x23A7E4aFE24F5E04c6F6d9EeB53aA9261077a3eF",
+  "address": "0x8984F1489591C07fb430A9984b264DaF6e101382",
   "abi": [
     "constructor()",
     "error AddressEmptyCode(address)",
@@ -48,5 +48,5 @@
     "function viewerCampaignHistory(address,uint256) view returns (uint256)",
     "function viewerEarnings(address) view returns (uint256)"
   ],
-  "numDeployments": 1
+  "numDeployments": 3
 }

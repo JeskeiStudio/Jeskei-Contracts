@@ -1,5 +1,5 @@
 {
-  "address": "0x1e3f3575027c21DAf2168ED57057bD5F66b3be0E",
+  "address": "0x65E89431Aa9b7f756B0599FDb8c78cD7Cbf1b1af",
   "abi": [
     "constructor()",
     "error AddressEmptyCode(address)",
@@ -41,5 +41,5 @@
     "function upgradeProposers(address) view returns (bool)",
     "function upgradeToAndCall(address,bytes) payable"
   ],
-  "numDeployments": 4
+  "numDeployments": 6
 }

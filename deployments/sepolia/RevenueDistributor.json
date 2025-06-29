@@ -1,5 +1,5 @@
 {
-  "address": "0xA3CA068FcAeDd3Db12731FB83CC08dD9068A584E",
+  "address": "0x6a458DCE5cb104A9a29d43F023dafb3084BC140d",
   "abi": [
     "constructor()",
     "error AddressEmptyCode(address)",
@@ -44,5 +44,5 @@
     "function updateAssetRegistry(address)",
     "function upgradeToAndCall(address,bytes) payable"
   ],
-  "numDeployments": 2
+  "numDeployments": 4
 }

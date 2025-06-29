@@ -1,5 +1,5 @@
 {
-  "address": "0xdBb5eEA00a6d8a4B62e65dE8aC355679C02515cA",
+  "address": "0xa5e439638afe75031527E912C3e74d9Ce36C1E33",
   "abi": [
     "constructor(address,address)",
     "error EnforcedPause()",
@@ -39,5 +39,5 @@
     "function votes(uint256,address) view returns (bool,bool,uint256,string)",
     "function votingPeriod() view returns (uint256)"
   ],
-  "numDeployments": 1
+  "numDeployments": 3
 }

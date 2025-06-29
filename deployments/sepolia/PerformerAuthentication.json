@@ -1,5 +1,5 @@
 {
-  "address": "0xd1e6D033D6424797692A5bE675793d2b5D7D612d",
+  "address": "0x87ECD9eA5247A57C6D0F3FD142232430923ba3eF",
   "abi": [
     "constructor()",
     "error AddressEmptyCode(address)",
@@ -43,5 +43,5 @@
     "function verifiers(address) view returns (bool)",
     "function verifyPerformer(address,bytes32,string,string)"
   ],
-  "numDeployments": 2
+  "numDeployments": 4
 }

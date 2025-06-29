@@ -1,17 +1,17 @@
 # Jeskei core contract set
 
    * deployer: 0x238D841A46f991C281539C2fb999127E3AfBddDd
-   * JeskeiProxyFactory impl   → 0xEA90b92B4A3AA583AD27483b1247d80409752716
-   * JeskeiProxyFactory proxy  → 0x89d3Bdfc7F9b3C6F07daa20366F6DC48a65daE07
-   * UpgradeManager impl   → 0x131f79417eA023742C1a4Eb96968D73501Ea23ad
-   * UpgradeManager proxy  → 0x1e3f3575027c21DAf2168ED57057bD5F66b3be0E
-   * AssetRegistry proxy  → 0x028DddDA930452CD349872aB5d1C24eE183c06e9
-   * RevenueDistributor proxy  → 0xA3CA068FcAeDd3Db12731FB83CC08dD9068A584E
-   * PerformerAuthentication proxy  → 0xd1e6D033D6424797692A5bE675793d2b5D7D612d
-   * AdvertisingEngine proxy  → 0x23A7E4aFE24F5E04c6F6d9EeB53aA9261077a3eF
-   * ContentAccess proxy  → 0x664A869704Afa12772775DeB99A7814Faba81CC7
-   * DigitalStudioDAO proxy  → 0xFBeD9E875552f16641c6f368D1D96B4846393243
-   * CommunityGovernance impl → 0xdBb5eEA00a6d8a4B62e65dE8aC355679C02515cA
+   * JeskeiProxyFactory impl   → 0x3A9Be8484BD02458640c4226f87b3D3FBED6a60b
+   * JeskeiProxyFactory proxy  → 0xd89B104E8Ba9DF8F9cf2fa896b33Cc3E2a5d1d48
+   * UpgradeManager impl   → 0xdcC9f20F99075C16c1E606Ae9890dFf0bC40A71c
+   * UpgradeManager proxy  → 0x65E89431Aa9b7f756B0599FDb8c78cD7Cbf1b1af
+   * AssetRegistry proxy  → 0x727D3Fe8cF386a9b5E834D1b61a4B060a17df457
+   * RevenueDistributor proxy  → 0x87ECD9eA5247A57C6D0F3FD142232430923ba3eF
+   * PerformerAuthentication proxy  → 0x87ECD9eA5247A57C6D0F3FD142232430923ba3eF
+   * AdvertisingEngine proxy  → 0x8984F1489591C07fb430A9984b264DaF6e101382
+   * ContentAccess proxy  → 0x1fD7d46Ce51b8FA7bD8f2F81316Ea41A8fF8725C
+   * DigitalStudioDAO proxy  → 0xee42229a98821d606B2404a41c1d08Ad0D05a7eF
+   * CommunityGovernance impl → 0xa5e439638afe75031527E912C3e74d9Ce36C1E33
 
 ```shell
 npx hardhat help

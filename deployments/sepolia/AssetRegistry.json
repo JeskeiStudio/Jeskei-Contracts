@@ -1,5 +1,5 @@
 {
-  "address": "0x028DddDA930452CD349872aB5d1C24eE183c06e9",
+  "address": "0x727D3Fe8cF386a9b5E834D1b61a4B060a17df457",
   "abi": [
     "constructor()",
     "error AddressEmptyCode(address)",
@@ -76,5 +76,5 @@
     "function verifyCreator(address)",
     "function withdrawHostingBalance()"
   ],
-  "numDeployments": 2
+  "numDeployments": 4
 }

@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import * as hre from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 
@@ -18,6 +19,24 @@ import { DeployFunction } from "hardhat-deploy/types";
  */
 
 const DAY = 24 * 60 * 60;
+const CONFIRMATIONS = hre.network.name === "hardhat" ? 1 : 5; // wait for Etherscan propagation
+
+// --------------------------------------------------------------------
+// Helper: attempt Etherscan verify (skips when local or missing API key)
+// --------------------------------------------------------------------
+async function verifyIfLive(address: string, constructorArguments: unknown[] = []) {
+  if (hre.network.name === "hardhat" || !process.env.ETHERSCAN_API_KEY) return;
+  try {
+    await hre.run("verify:verify", { address, constructorArguments });
+    console.log(`      ✔︎ verified ${address}`);
+  } catch (err: any) {
+    if (err.message?.toLowerCase().includes("already verified")) {
+      console.log(`      • already verified ${address}`);
+    } else {
+      console.log(`      ⚠︎ verify failed ${address}: ${err.message}`);
+    }
+  }
+}
 
 type Module = {
   label: string;
@@ -98,15 +117,21 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const ImplF = await ethers.getContractFactory(implFactoryName);
     const impl = await ImplF.deploy();
     await impl.waitForDeployment();
+    if (impl.deploymentTransaction()) await impl.deploymentTransaction()!.wait(CONFIRMATIONS);
+    // wait extra confirmations so Etherscan indexes bytecode
+    if (impl.deploymentTransaction()) await impl.deploymentTransaction()!.wait(CONFIRMATIONS);
     const implAddr = await impl.getAddress();
     log(`   ${label} impl   → ${implAddr}`);
+    await verifyIfLive(implAddr);
 
-    const initData = impl.interface.encodeFunctionData(initSelector, initArgs);
+    const initData = ImplF.interface.encodeFunctionData(initSelector, initArgs);
     const ProxyF = await ethers.getContractFactory("ERC1967Proxy");
     const proxy = await ProxyF.deploy(implAddr, initData);
     await proxy.waitForDeployment();
+    if (proxy.deploymentTransaction()) await proxy.deploymentTransaction()!.wait(CONFIRMATIONS);
     const proxyAddr = await proxy.getAddress();
     log(`   ${label} proxy  → ${proxyAddr}`);
+    await verifyIfLive(proxyAddr, [implAddr, initData]);
 
     await save(label, {
       abi: ImplF.interface.format("json") as string[],
@@ -135,6 +160,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const ImplF = await ethers.getContractFactory(mod.impl);
     const impl = await ImplF.deploy();
     await impl.waitForDeployment();
+    if (impl.deploymentTransaction()) await impl.deploymentTransaction()!.wait(CONFIRMATIONS);
     const implAddr = await impl.getAddress();
 
     const initArgs = mod.args(addrs);
@@ -142,9 +168,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
     const deployFn = proxyFactory.getFunction("deployProxy");
     const proxyAddr: string = await deployFn.staticCall(mod.label, implAddr, initData, "1.0.0");
-    await (await deployFn(mod.label, implAddr, initData, "1.0.0")).wait();
+    const txDeploy = await deployFn(mod.label, implAddr, initData, "1.0.0");
+    await txDeploy.wait(CONFIRMATIONS);
 
     log(`   ${mod.label} proxy  → ${proxyAddr}`);
+    await verifyIfLive(implAddr);
+    await verifyIfLive(proxyAddr, [implAddr, initData]);
     await save(mod.label, {
       abi: ImplF.interface.format("json") as string[],
       address: proxyAddr,
@@ -161,8 +190,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   // constructor(address _assetRegistry, address _revenueDistributor)
   const governance = await GovF.deploy(addrs.AssetRegistry, addrs.RevenueDistributor);
   await governance.waitForDeployment();
+  if (governance.deploymentTransaction()) await governance.deploymentTransaction()!.wait(CONFIRMATIONS);
   const govAddr = await governance.getAddress();
   log(`   CommunityGovernance impl → ${govAddr}`);
+  await verifyIfLive(govAddr, [addrs.AssetRegistry, addrs.RevenueDistributor]);
   await save("CommunityGovernance", {
     abi: GovF.interface.format("json") as string[],
     address: govAddr,

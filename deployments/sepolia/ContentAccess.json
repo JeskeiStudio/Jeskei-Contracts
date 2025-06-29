@@ -1,5 +1,5 @@
 {
-  "address": "0x664A869704Afa12772775DeB99A7814Faba81CC7",
+  "address": "0x1fD7d46Ce51b8FA7bD8f2F81316Ea41A8fF8725C",
   "abi": [
     "constructor()",
     "error AddressEmptyCode(address)",
@@ -40,5 +40,5 @@
     "function userAccess(address,uint256) view returns (uint256,bool,uint256)",
     "function userPurchaseHistory(address,uint256) view returns (uint256)"
   ],
-  "numDeployments": 1
+  "numDeployments": 3
 }
